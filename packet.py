@@ -1,6 +1,8 @@
 import pickle
 import time
 
+CONNECTION = "CONNECTION"
+
 class Packet:
 
     def __init__(self, type_, packet_data, sender = None, time_sent = None, receiver = None, time_received = None):
