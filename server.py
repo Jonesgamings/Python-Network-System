@@ -2,6 +2,8 @@ import socket
 import packet
 import random
 import time
+import _thread
+import tkinter as tk
 
 class ConnectedClient:
 
@@ -10,6 +12,7 @@ class ConnectedClient:
         self.address = address
         self.type = None
         self.authentication_code = None
+        self.version = ""
 
     def set_authentication_code(self, authentication_code):
         self.authentication_code = authentication_code
@@ -17,11 +20,14 @@ class ConnectedClient:
     def set_type(self, type_):
         self.type = type_
 
+    def set_version(self, version):
+        self.version = version
+
     def kick_client(self):
         disconnect_packet = packet.Packet(packet.DISCONNECTION, {packet.AUTHENTICATION_CODE: self.authentication_code})
         self.connection.send(disconnect_packet.send(self.socket, time.time()))
         self.connection.close()
-
+        
 class Server:
 
     def __init__(self) -> None:
@@ -62,9 +68,11 @@ class Server:
                         data = received_pakcet.pakcet_data
                         if data[packet.AUTHENTICATION_CODE] == authentication_code:
                             connection_client.set_authentication_code(authentication_code)
+                            connection_client.set_version(data[packet.VERSION])
                             self.connected_clients.append(connection_client)
                             received_connection_pakcet = True
 
+                    #DISCONNECTION PACKET
                     elif received_pakcet.type == packet.DISCONNECTION:
                         if data[packet.AUTHENTICATION_CODE] == authentication_code:
                             connection.close()
@@ -88,7 +96,48 @@ class Server:
 
         self.connected_clients.clear()
 
+    def start(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.host, self.port))
+        self.socket.listen(self.max_clients)
+        self.connected_clients.clear()
+        self.running = True
+
+        while self.running:
+
+            try:
+                connection, address = self.socket.accept()
+                _thread.start_new_thread(self.client_connection, (connection, address))
+
+            except:
+                pass
+
     def close(self):
         self.kick_all()
         self.running = False
         self.socket.close()
+
+class ServerUI(tk.Tk):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.server = Server()
+
+        self.geometry("500x500")
+        self.resizable(width = False , height = False)
+
+        self.connected_clients_frame = tk.Frame(self, borderwidth=1, relief = tk.SOLID, width = 200, height = 200)
+        self.start_button = tk.Button(self, text = "Start")
+        self.stop_button = tk.Button(self, text = "Stop")
+
+        self.connected_clients_frame.place(x = 100, y = 100)
+
+    def start_server(self):
+        pass
+
+    def stop_server(self):
+        pass
+
+if __name__ == "__main__":
+    ui = ServerUI()
+    ui.mainloop()
