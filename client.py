@@ -1,6 +1,7 @@
 import socket
 import packet
 import time
+import tkinter as tk
 
 class Client:
 
@@ -55,6 +56,12 @@ class Client:
 
             except Exception as e:
                 print(e)
+
+class ClientUI(tk.Tk):
+
+    def __init__(self):
+        super().__init__()
+        self.client = Client(None)
 
 if __name__ == "__main__":
     ip = input("IP: ")

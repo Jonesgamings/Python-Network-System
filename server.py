@@ -123,6 +123,11 @@ class Server:
 
         self.connected_clients.clear()
 
+    def set_information(self, ip, port, max_clients):
+        self.ip = ip
+        self.port = port
+        self.max_clients = max_clients
+
     def start(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((self.host, self.port))
@@ -220,6 +225,12 @@ class ServerUI(tk.Tk):
         self.connected_client_listbox.insert(tk.END, display_text)
 
     def start_server(self):
+        ip = self.ip_entry.get()
+        port = int(self.port_entry.get())
+        max_clients = int(self.max_clients_entry.get())
+
+        self.server.set_information(ip, port, max_clients)
+
         self.start_button.config(relief = tk.SUNKEN, state = tk.DISABLED)
         self.stop_button.config(relief = tk.RAISED, state = tk.ACTIVE)
         self.ip_entry.config(state = "readonly")
@@ -237,6 +248,6 @@ class ServerUI(tk.Tk):
 
         self.server.close()
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     ui = ServerUI()
     ui.mainloop()
