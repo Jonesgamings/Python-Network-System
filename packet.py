@@ -4,6 +4,7 @@ import time
 CONNECTION = "CONNECTION"
 AUTHENTICATION_CODE = "AUTHENTICATION CODE"
 DISCONNECTION = "DISCONNECTION"
+
 VERSION = "VERSION"
 NAME = "NAME"
 
@@ -42,8 +43,7 @@ class Packet:
         return new_pakcet
     
     def copy(self):
-        new_packet = Packet(self.type, self.pakcet_data)
-        return new_packet
+        return Packet(self.type, self.pakcet_data)
     
     def __hash__(self):
         type_hash = hash(self.type)

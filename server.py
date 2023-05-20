@@ -2,7 +2,7 @@ import socket
 import packet
 import random
 import time
-import _thread
+import threading
 import tkinter as tk
 
 class ConnectedClient:
@@ -14,6 +14,10 @@ class ConnectedClient:
         self.authentication_code = None
         self.version = ""
         self.connected = True
+        self.thread = None
+
+    def set_thread(self, thread):
+        self.thread = thread
 
     def set_authentication_code(self, authentication_code):
         self.authentication_code = authentication_code
@@ -29,10 +33,15 @@ class ConnectedClient:
         self.connected = False
         self.connection.send(disconnect_packet.send(sender, time.time()))
         self.connection.close()
+        self.thread.join()
 
     def display_text(self):
         text = f"{self.name}: {self.address}"
         return text
+    
+    def close(self):
+        self.connection.close()
+        self.thread.join()
     
     def check_display_text(self, display_text):
         if display_text == self.display_text():
@@ -84,14 +93,15 @@ class Server:
                                 connection_client.set_authentication_code(authentication_code)
                                 connection_client.set_version(data[packet.VERSION])
                                 connection_client.set_name(data[packet.NAME])
+                                connection_client.set_thread(threading.current_thread())
                                 self.connected_clients.append(connection_client)
                                 received_connection_pakcet = True
                                 self.ui.add_connected_client(connection_client)
 
                         #DISCONNECTION PACKET
                         elif received_packet.type == packet.DISCONNECTION:
+                            connection.close()
                             if data[packet.AUTHENTICATION_CODE] == authentication_code:
-                                connection.close()
                                 index = self.connected_clients.index(connection_client)
                                 self.connected_clients.remove(connection_client)
                                 self.ui.disconnect_client(index)
@@ -114,8 +124,11 @@ class Server:
             client.connection.send(packet_bytes)
 
     def kick_client(self, connection_client: ConnectedClient):
+        print(threading.active_count())
         connection_client.kick_me(self.id)
+        connection_client.thread.join()
         self.connected_clients.remove(connection_client)
+        print(threading.active_count())
 
     def kick_all(self):
         for client in self.connected_clients.copy():
@@ -136,12 +149,14 @@ class Server:
         self.running = True
 
         while self.running:
+            print(threading.active_count())
             
             if self.running:
                 try:
                     connection, address = self.socket.accept()
                     print(address, connection)
-                    _thread.start_new_thread(self.client_connection, (connection, address))
+                    thread = threading.Thread(target=self.client_connection, args=(connection, address))
+                    thread.start()
 
                 except Exception as e:
                     continue
@@ -152,7 +167,7 @@ class Server:
     def close(self):
         self.kick_all()
         self.running = False
-        self.socket.close()
+        if self.socket: self.socket.close()
         self.socket = None
         self.ui.clear_connected()
 
@@ -162,6 +177,8 @@ class ServerUI(tk.Tk):
         super().__init__()
         self.server = Server()
         self.server.ui = self
+        
+        self.server_thread = None
 
         self.geometry("500x500")
         self.resizable(width = False , height = False)
@@ -237,7 +254,8 @@ class ServerUI(tk.Tk):
         self.port_entry.config(state = "readonly")
         self.max_clients_entry.config(state = "readonly")
 
-        _thread.start_new_thread(self.server.start, ())
+        self.server_thread = threading.Thread(target = self.server.start)
+        self.server_thread.start()
 
     def stop_server(self):
         self.stop_button.config(relief = tk.SUNKEN, state = tk.DISABLED)
@@ -247,7 +265,9 @@ class ServerUI(tk.Tk):
         self.max_clients_entry.config(state = "normal")
 
         self.server.close()
+        self.server_thread.join()
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
+
     ui = ServerUI()
     ui.mainloop()

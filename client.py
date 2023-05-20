@@ -46,7 +46,6 @@ class Client:
                         self.authentication_code = data[packet.AUTHENTICATION_CODE]
                         connection_packet = packet.Packet(packet.CONNECTION, {packet.AUTHENTICATION_CODE: self.authentication_code, packet.VERSION: self.version, packet.NAME: self.type})
                         self.socket.send(connection_packet.send(self.socket.getpeername(), time.time()))
-
                     if received_pakcet.type == packet.DISCONNECTION:
                         if data[packet.AUTHENTICATION_CODE] == self.authentication_code:
                             self.kicked()
